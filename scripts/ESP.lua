@@ -1,61 +1,54 @@
-local Players = game.GetService("Players")
-local LocalPlayer = Players.LocalPlayers
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local highlights = {}
-local enabled = false
+-- Color Palette 🎨
+local COLOR_VISIBLE = Color3.fromRGB(0, 255, 127) -- Bright Green
+local COLOR_HIDDEN = Color3.fromRGB(255, 38, 38)  -- Bright Red
 
-local function addHighlight(player)
-    if player == LocalPlayer then return end
-    if not player.Character then return end
-    if highlights[player] then return end
-
-    local hightlight = Instance.new("Highlight")
-    hightlight.Name = "AdminHighlight"
-    hightlight.Adrornee = player.Character
-    highlight.FillTransparency = 0.7
-    hightlight.OutlineTransparency = 0
-    highlight.Parent = player.Character
-
-    -- Experimental Team ESP
-    if player.Team then
-        hightlight.FillColor = player.Team.TeamColor.Color
-    else
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+local function getHighlight(char)
+    local hl = char:FindFirstChild("AdaptiveCham")
+    if not hl then
+        hl = Instance.new("Highlight")
+        hl.Name = "AdaptiveCham"
+        hl.FillTransparency = 0.5
+        hl.OutlineTransparency = 0
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Still see Red through walls!
+        hl.Parent = char
     end
-
-    highlight[player] = highlight
+    return hl
 end
 
-local function removeHighlight(player)
-    if highlights[player] then
-        hightlights[player]:Destroy()
-        highlights[player] = nil
-    end
-end
-
-local function enableESP()
-    enabled = true
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        addHighlight(player)
-    end
-end
-
-local function disableESP()
-	enabled = false
-
-	for _, player in pairs(highlights) do
-		player:Destroy()
-	end
-	highlights = {}
-end
-
--- Removing and adding ESP for people joining and leaving
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        if enabled then 
-            task.wait(1)
-            addHighlight(player)
+RunService.RenderStepped:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local char = player.Character
+            local head = char:FindFirstChild("Head")
+            
+            if head then
+                -- 1. Setup Raycast
+                local origin = Camera.CFrame.Position
+                local direction = (head.Position - origin)
+                
+                local params = RaycastParams.new()
+                params.FilterDescendantsInstances = {LocalPlayer.Character, char}
+                params.FilterType = Enum.RaycastFilterType.Exclude
+                
+                local result = workspace:Raycast(origin, direction, params)
+                local hl = getHighlight(char)
+                
+                -- 2. Check Visibility
+                if not result then
+                    -- No obstructions! (Green)
+                    hl.FillColor = COLOR_VISIBLE
+                    hl.OutlineColor = COLOR_VISIBLE
+                else
+                    -- Wall in the way! (Red)
+                    hl.FillColor = COLOR_HIDDEN
+                    hl.OutlineColor = COLOR_HIDDEN
+                end
+            end
         end
-    end)
+    end
 end)
