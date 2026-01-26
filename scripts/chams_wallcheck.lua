@@ -14,7 +14,7 @@ local function getHighlight(char)
         hl.Name = "AdaptiveCham"
         hl.FillTransparency = 0.5
         hl.OutlineTransparency = 0
-        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Still see Red through walls!
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         hl.Parent = char
     end
     return hl
@@ -24,10 +24,17 @@ RunService.RenderStepped:Connect(function()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local char = player.Character
-            local head = char:FindFirstChild("Head")
             
+            -- 1. TEAM CHECK: Skip teammates
+            if player.Team == LocalPlayer.Team and player.Team ~= nil then
+                local existingHl = char:FindFirstChild("AdaptiveCham")
+                if existingHl then existingHl:Destroy() end
+                continue -- Moves to the next player in the loop
+            end
+
+            local head = char:FindFirstChild("Head")
             if head then
-                -- 1. Setup Raycast
+                -- 2. Setup Raycast
                 local origin = Camera.CFrame.Position
                 local direction = (head.Position - origin)
                 
@@ -38,13 +45,11 @@ RunService.RenderStepped:Connect(function()
                 local result = workspace:Raycast(origin, direction, params)
                 local hl = getHighlight(char)
                 
-                -- 2. Check Visibility
+                -- 3. Check Visibility
                 if not result then
-                    -- No obstructions! (Green)
                     hl.FillColor = COLOR_VISIBLE
                     hl.OutlineColor = COLOR_VISIBLE
                 else
-                    -- Wall in the way! (Red)
                     hl.FillColor = COLOR_HIDDEN
                     hl.OutlineColor = COLOR_HIDDEN
                 end
