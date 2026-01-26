@@ -11,37 +11,40 @@ local lastMousePos = UserInputService:GetMouseLocation().X
 
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+    if not char then return end
+    
+    local hum = char:FindFirstChild("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hum or not hrp then return end
 
-    -- 1. NO SLOW (Keep max speed 16)
+    -- 1. THE "NO SLOW" (Owner God-Speed)
+    -- Forces WalkSpeed to 16 if the game tries to slow you down
     if _G.NoSlow then
         if hum.WalkSpeed < 16 then
             hum.WalkSpeed = 16
         end
     end
 
-    -- 2. AUTO BHOP (Jump exactly when touching floor)
+    -- 2. AUTO BHOP
+    -- If holding Space, jump the millisecond you hit the ground
     if _G.BhopEnabled and UserInputService:IsKeyDown(Enum.KeyCode.Space) then
         if hum.FloorMaterial ~= Enum.Material.Air then
-            hum.Jump = true
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
 
-    -- 3. CS-STYLE AUTO STRAFE
+    -- 3. SOURCE-STYLE AUTO STRAFE
+    -- This increases your air control based on mouse movement
     if _G.AutoStrafe and hum.FloorMaterial == Enum.Material.Air then
         local currentMousePos = UserInputService:GetMouseLocation().X
+        local delta = currentMousePos - lastMousePos
         
-        -- If moving mouse Left, press A
-        if currentMousePos < lastMousePos then
-            hrp.Velocity = hrp.Velocity + (workspace.CurrentCamera.CFrame.RightVector * -0.5)
-        -- If moving mouse Right, press D
-        elseif currentMousePos > lastMousePos then
-            hrp.Velocity = hrp.Velocity + (workspace.CurrentCamera.CFrame.RightVector * 0.5)
+        if delta > 0 then -- Moving Mouse Right
+            hrp.CFrame = hrp.CFrame * CFrame.new(-0.05, 0, 0)
+        elseif delta < 0 then -- Moving Mouse Left
+            hrp.CFrame = hrp.CFrame * CFrame.new(0.05, 0, 0)
         end
+        
         lastMousePos = currentMousePos
     end
 end)
-
